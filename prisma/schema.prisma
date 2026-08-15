@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  DJ
+  OPERATOR
+}
+
+enum SessionMode {
+  AUTO
+  HYBRID
+  MANUAL
+}
+
+enum QueueStatus {
+  UPCOMING
+  NEXT
+  PLAYING
+  PLAYED
+  SKIPPED
+  FAILED
+}
+
+enum AssetStatus {
+  QUARANTINED
+  ANALYZING
+  READY
+  FAILED
+  BLOCKED
+}
+
+enum SelectionType {
+  AUTODJ
+  MANUAL
+  REQUEST
+  JINGLE
+  FALLBACK
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  PLAYED
+}
+
+model Tenant {
+  id String @id @default(cuid())
+  name String
+  createdAt DateTime @default(now())
+  venues Venue[]
+  memberships Membership[]
+  tracks Track[]
+  playlists Playlist[]
+  auditLogs AuditLog[]
+}
+
+model Venue {
+  id String @id @default(cuid())
+  tenantId String
+  name String
+  timezone String @default("America/Bogota")
+  settings Json @default("{}")
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions DjSession[]
+  requests SongRequest[]
+  @@index([tenantId])
+}
+
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  displayName String
+  passwordHash String?
+  disabledAt DateTime?
+  memberships Membership[]
+  driveSlots DriveSlotConfig[]
+}
+
+model DriveSlotConfig {
+  id String @id @default(cuid())
+  tenantId String
+  userId String
+  slot String
+  folderId String
+  folderName String
+  trackCount Int @default(0)
+  syncStatus String @default("connected")
+  syncProcessed Int @default(0)
+  syncTotal Int @default(0)
+  syncError String?
+  syncStartedAt DateTime?
+  lastSyncAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, userId, slot])
+  @@index([tenantId, userId])
+}
+
+model Membership {
+  id String @id @default(cuid())
+  tenantId String
+  userId String
+  role Role
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([tenantId, userId])
+}
+
+model Track {
+  id String @id @default(cuid())
+  tenantId String
+  title String
+  artist String
+  genre String?
+  subgenre String?
+  durationMs Int
+  releaseDate DateTime?
+  blocked Boolean @default(false)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  assets AudioAsset[]
+  analysis TrackAnalysis?
+  playlistItems PlaylistItem[]
+  queueItems QueueItem[]
+  requests SongRequest[]
+  @@index([tenantId, artist])
+  @@index([tenantId, subgenre])
+}
+
+model AudioAsset {
+  id String @id @default(cuid())
+  trackId String
+  storageKey String
+  sha256 String
+  mimeType String
+  status AssetStatus @default(QUARANTINED)
+  licenseEvidence Json
+  offlineAllowed Boolean @default(true)
+  track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  @@unique([trackId, sha256])
+  @@unique([storageKey])
+  @@index([storageKey])
+}
+
+model TrackAnalysis {
+  trackId String @id
+  bpm Float?
+  bpmConfidence Float?
+  musicalKey String?
+  keyConfidence Float?
+  energy Float?
+  loudnessLufs Float?
+  truePeakDb Float?
+  cueInMs Int?
+  transitionOutMs Int?
+  cuePoints Json?
+  beatgrid Json?
+  waveform Json?
+  analyzerVersion String
+  track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+}
+
+model Playlist {
+  id String @id @default(cuid())
+  tenantId String
+  name String
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  items PlaylistItem[]
+  @@index([tenantId])
+}
+
+model PlaylistItem {
+  playlistId String
+  trackId String
+  position Int
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  @@id([playlistId, trackId])
+  @@unique([playlistId, position])
+}
+
+model DjSession {
+  id String @id @default(cuid())
+  venueId String
+  mode SessionMode @default(AUTO)
+  intent Json @default("{}")
+  version Int @default(1)
+  startedAt DateTime @default(now())
+  endedAt DateTime?
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  queue QueueItem[]
+  plays PlayHistory[]
+  @@index([venueId, startedAt])
+}
+
+model QueueItem {
+  id String @id @default(cuid())
+  sessionId String
+  trackId String
+  position Int
+  status QueueStatus @default(UPCOMING)
+  locked Boolean @default(false)
+  selectionType SelectionType
+  scoreBreakdown Json?
+  addedById String?
+  session DjSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  track Track @relation(fields: [trackId], references: [id])
+  @@unique([sessionId, position])
+  @@index([sessionId, status])
+}
+
+model PlayHistory {
+  id String @id @default(cuid())
+  sessionId String
+  trackId String
+  selectionType SelectionType
+  startedAt DateTime
+  endedAt DateTime?
+  playedMs Int @default(0)
+  skipReason String?
+  session DjSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  @@index([sessionId, startedAt])
+}
+
+model SongRequest {
+  id String @id @default(cuid())
+  venueId String
+  trackId String
+  status RequestStatus @default(PENDING)
+  votes Int @default(1)
+  requesterHash String
+  createdAt DateTime @default(now())
+  venue Venue @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  track Track @relation(fields: [trackId], references: [id])
+  @@index([venueId, status, createdAt])
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+  tenantId String
+  actorId String?
+  action String
+  entityType String
+  entityId String?
+  correlationId String
+  payload Json
+  createdAt DateTime @default(now())
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  @@index([tenantId, createdAt])
+}

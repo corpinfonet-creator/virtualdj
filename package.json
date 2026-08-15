@@ -1,0 +1,51 @@
+{
+  "name": "autodj-ai",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:studio": "prisma studio",
+    "test:autodj": "tsx tests/autodj.test.ts && tsx tests/session-intent.test.ts && tsx tests/transition-engine.test.ts && tsx tests/drive-slots.test.ts",
+    "test:phase15": "npm run test:autodj && tsx tests/continuity.test.ts && tsx tests/soak-autodj.test.ts",
+    "db:check": "node scripts/check-db.mjs"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.1.0",
+    "@dnd-kit/sortable": "^8.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@prisma/adapter-pg": "^7.9.1",
+    "@prisma/client": "^7.9.1",
+    "@supabase/supabase-js": "^2.112.3",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "jose": "^6.2.8",
+    "lucide-react": "^0.468.0",
+    "next": "^16.3.0",
+    "pg": "^8.23.0",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/pg": "^8.21.0",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "prettier": "^3.9.6",
+    "prisma": "^7.9.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.23.12",
+    "typescript": "^5.7.2"
+  }
+}

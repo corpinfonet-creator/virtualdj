@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.env
+.env.local
+*.log
+tsconfig.tsbuildinfo
+generated/
+uploads/
+.data/
+musica/
+certs/
