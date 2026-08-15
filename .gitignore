@@ -9,3 +9,7 @@ uploads/
 .data/
 musica/
 certs/
+
+.vercel
+.env*
+!.env.example
